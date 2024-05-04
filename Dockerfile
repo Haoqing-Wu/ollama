@@ -129,8 +129,6 @@ COPY --from=build-amd64 /go/src/github.com/ollama/ollama/ollama /bin/ollama
 EXPOSE 11434
 ENV OLLAMA_HOST 0.0.0.0
 
-ENTRYPOINT ["/bin/ollama"]
-CMD ["serve"]
 
 FROM runtime-$TARGETARCH
 EXPOSE 11434
@@ -140,5 +138,18 @@ ENV LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 ENV NVIDIA_VISIBLE_DEVICES=all
 
-ENTRYPOINT ["/bin/ollama"]
-CMD ["serve"]
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt install -y software-properties-common
+RUN add-apt-repository ppa:deadsnakes/ppa
+
+RUN apt-get update && apt-get install -y python3.9 python3-pip  && \
+   apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN pip install requests starlette pydantic fastapi uvicorn
+
+EXPOSE 5001
+COPY ./aigic/main.py /bin
+COPY ./run.sh /bin
+RUN chmod +x /bin/run.sh
+
+ENTRYPOINT ["/bin/run.sh"]
