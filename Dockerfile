@@ -143,13 +143,22 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt install -y software-properties-common
 RUN add-apt-repository ppa:deadsnakes/ppa
 
-RUN apt-get update && apt-get install -y python3.9 python3-pip  && \
+RUN apt-get update && apt-get install -y python3.9 python3-pip wget && \
    apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN pip install requests starlette pydantic fastapi uvicorn
+
+RUN wget -P /bin https://huggingface.co/QuantFactory/Llama3-8B-Chinese-Chat-GGUF/resolve/main/Llama3-8B-Chinese-Chat.Q4_0.gguf
 
 EXPOSE 5001
 COPY ./aigic/main.py /bin
 COPY ./run.sh /bin
+COPY ./service.sh /bin
+COPY ./Modelfile /bin
 RUN chmod +x /bin/run.sh
+RUN chmod +x /bin/service.sh
+RUN chmod +x /bin/Modelfile
+
+RUN /bin/service.sh
+
 
 ENTRYPOINT ["/bin/run.sh"]

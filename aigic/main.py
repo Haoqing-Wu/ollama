@@ -29,9 +29,9 @@ class Parameters(BaseModel):
     repeat_penalty: float = Field(title="Repeat penalty", type="number", description="Sets how strongly to penalize repetitions. A higher value (e.g., 1.5) will penalize repetitions more strongly, while a lower value (e.g., 0.9) will be more lenient. (Default: 1.1)", default=1.1)
     temperature: float = Field(title="Temperature", type="number", description="The temperature of the model. Increasing the temperature will make the model answer more creatively. (Default: 0.8)", default=0.8)
     seed: int = Field(title="Seed", type="integer", description="Seed for the random number generator. (Default: 0)", default=0)
-    stop: list = Field(title="Stop", type="array", description="List of tokens to stop generation at.", default=["\n"])
+    stop: list = Field(title="Stop", type="array", description="List of tokens to stop generation at.", default=[])
     tfs_z: float = Field(title="TFS Z", type="number", description="Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting. (default: 1)", default=1.0)
-    num_predict: int = Field(title="Number of predictions", type="integer", description="Number of tokens to predict at each step. (default: 128)", default=128)
+    num_predict: int = Field(title="Number of predictions", type="integer", description="Number of tokens to predict at each step. (default: 128)", default=1024)
     top_k: int = Field(title="Top k", type="integer", description="Reduces the probability of generating nonsense. A higher value (e.g. 100) will give more diverse answers, while a lower value (e.g. 10) will be more conservative. (Default: 40)", default=40)
     top_p: float = Field(title="Top p", type="number", description="Works together with top-k. A higher value (e.g., 0.95) will lead to more diverse text, while a lower value (e.g., 0.5) will generate more focused and conservative text. (Default: 0.9)", default=0.9)
 
@@ -53,7 +53,7 @@ def aigic(inputdata: InputData):
 
     # Prepare the data to send to localhost:11434/api/generate
     data = {
-        "model": "llama3",
+        "model": "llama3c",
         "prompt": inputdata.input.prompt,
         "stream": False,
         "options": {
@@ -74,25 +74,36 @@ def aigic(inputdata: InputData):
     }
     response = requests.post(generate_url, json=data).json()
     #response.pop('context')
-    print('5. Output Info:', response)
+    print('5. Output Info:', response['response'])
+    output = response['response']
+    if len(output) == 0:
+        return {
+        #"code": 400,
+        #"msg": "error",
+        "output": "No output"
+        }
+    # separate the output into signal words
+    output = output.split()
+    # add a space before each signal word
+    for i in range(len(output)):
+        output[i] = ' ' + output[i]
 
-    if inputdata.input.debug == False:
-        response.pop('created_at')
-        response.pop('done')
-        response.pop('total_duration')
-        response.pop('load_duration')
-        response.pop('prompt_eval_duration')
-        response.pop('eval_count')
-        response.pop('eval_duration')
-
-    ret = {
-    "output": response
-    }
+    #ret = {
+    #"output": output,
+    #"created_at": response['created_at'],
+    #"model": response['model'],
+    #"done": response['done'],
+    #"total_duration": response['total_duration'],
+    #"load_duration": response['load_duration'],
+    #"prompt_eval_duration": response['prompt_eval_duration'],
+    #"eval_count": response['eval_count'],
+    #"eval_duration": response['eval_duration']
+    #}
 
     return {
-    "code": 200,
-    "msg": "success",
-    "content": ret 
+    #"code": 200,
+    #"msg": "success",
+    "output": output 
     }
 
 if __name__ == "__main__":
